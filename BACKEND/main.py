@@ -113,6 +113,15 @@ async def get_chart_data(host_id: str = Query(...), category: str = Query(...)):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+@app.get("/get_hosts")
+async def get_hosts():
+    session = SessionLocal()
+    try:
+        result = session.execute(text("SELECT hostid, host FROM hosts"))
+        return [{"hostid": r[0], "host": r[1]} for r in result.fetchall()]
+    finally:
+        session.close()
+
 
 
 @app.post("/detect_anomalies")
