@@ -51,7 +51,7 @@ def get_host_items(host_id):
         output=["itemid", "name", "key_", "hostid", "value_type"],
         monitored=True,
     )
-    
+
     # Filter for numeric items only
     return [item for item in items if int(item["value_type"]) in (0, 3)]
 
@@ -63,7 +63,7 @@ def get_history(item_id, time_period=24):
     zapi = connect_to_zabbix()
     end_time = datetime.now()
     start_time = end_time - timedelta(hours=time_period)
-    
+
     return zapi.history.get(
         itemids=[item_id],
         time_from=int(start_time.timestamp()),
@@ -71,4 +71,4 @@ def get_history(item_id, time_period=24):
         output="extend",
         sortfield="clock",
         sortorder="ASC"
-    ) 
+    )

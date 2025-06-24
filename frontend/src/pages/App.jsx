@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { 
   getHosts, 
   getChartData, 
-  detectAnomalies, 
+  detectAnomalies,
+  analyzeRootCause,
   submitFeedback 
 } from '../services/api';
 import HostSelector from '../components/HostSelector';
@@ -10,6 +11,7 @@ import CategorySelector from '../components/CategorySelector';
 import MetricsChart from '../components/MetricsChart';
 import AnomalyDisplay from '../components/AnomalyDisplay';
 import FeedbackForm from '../components/FeedbackForm';
+import Sidebar from '../components/Sidebar';
 import '../styles/App.css';
 
 /**
@@ -23,6 +25,8 @@ const App = () => {
   const [anomalyData, setAnomalyData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Load hosts on component mount
   useEffect(() => {
@@ -37,6 +41,28 @@ const App = () => {
     };
 
     loadHosts();
+  }, []);
+
+  // Update sidebar state when it changes
+  useEffect(() => {
+    const handleSidebarChange = () => {
+      const sidebarElement = document.querySelector('.sidebar');
+      if (sidebarElement) {
+        setSidebarOpen(sidebarElement.classList.contains('open'));
+      }
+    };
+
+    // Set up a mutation observer to watch for class changes on the sidebar
+    const observer = new MutationObserver(handleSidebarChange);
+    const sidebarElement = document.querySelector('.sidebar');
+    
+    if (sidebarElement) {
+      observer.observe(sidebarElement, { attributes: true });
+    }
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   // Handle host change
@@ -97,66 +123,110 @@ const App = () => {
     }
   };
 
+  // Handle root cause analysis
+  const handleRootCauseAnalysis = async (hostId) => {
+    return await analyzeRootCause(hostId);
+  };
+
   // Handle feedback submission
   const handleFeedbackSubmit = async (hostId, feedback, comment) => {
     return await submitFeedback(hostId, feedback, comment);
   };
 
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
+  // Determine content class based on sidebar state
+  const contentClass = sidebarOpen ? 'with-sidebar' : 'with-sidebar-collapsed';
+
   return (
     <div className="app-container">
-      <header className="app-header">
-        <h1>Zabbix AI Anomaly Detection</h1>
-      </header>
+      <Sidebar 
+        hostId={hostId}
+        onAnalyzeRootCause={handleRootCauseAnalysis}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+      />
 
-      <main className="app-content">
-        <section className="controls-section">
-          <div className="selectors">
-            <HostSelector 
-              hosts={hosts} 
-              hostId={hostId} 
-              onHostChange={handleHostChange} 
-            />
-            <CategorySelector 
-              category={category} 
-              onCategoryChange={handleCategoryChange} 
-            />
-          </div>
+      <main className={`app-content ${contentClass}`}>
+        <div className={`tab-content ${activeTab === 'dashboard' ? 'active' : ''}`}>
+          <header className="app-header">
+            <h1>Zabbix Dashboard</h1>
+          </header>
           
-          <div className="action-buttons">
-            <button onClick={handleLoadChart} disabled={!hostId || loading}>
-              Load Chart
-            </button>
-            <button onClick={handleDetectAnomalies} disabled={!hostId || loading}>
-              Detect Anomalies
-            </button>
-          </div>
-        </section>
-
-        {error && <div className="error-message">{error}</div>}
-        {loading && <div className="loading-message">Loading...</div>}
-
-        <section className="chart-section">
-          <h2>Metrics Chart</h2>
-          <MetricsChart data={chartData} />
-        </section>
-
-        {anomalyData && (
-          <section className="anomaly-section">
-            <AnomalyDisplay anomalyData={anomalyData} />
+          <section className="controls-section">
+            <div className="selectors">
+              <HostSelector 
+                hosts={hosts} 
+                hostId={hostId} 
+                onHostChange={handleHostChange} 
+              />
+              <CategorySelector 
+                category={category} 
+                onCategoryChange={handleCategoryChange} 
+              />
+            </div>
+            
+            <div className="action-buttons">
+              <button onClick={handleLoadChart} disabled={!hostId || loading}>
+                Load Chart
+              </button>
+            </div>
           </section>
-        )}
 
-        <section className="feedback-section">
-          <FeedbackForm 
-            hostId={hostId} 
-            onSubmit={handleFeedbackSubmit} 
-          />
-        </section>
+          {error && <div className="error-message">{error}</div>}
+          {loading && <div className="loading-message">Loading...</div>}
+
+          <section className="chart-section">
+            <h2>Metrics Chart</h2>
+            <MetricsChart data={chartData} />
+          </section>
+        </div>
+
+        <div className={`tab-content ${activeTab === 'analysis' ? 'active' : ''}`}>
+          <header className="app-header">
+            <h1>AI Analysis</h1>
+          </header>
+          
+          <section className="controls-section">
+            <div className="selectors">
+              <HostSelector 
+                hosts={hosts} 
+                hostId={hostId} 
+                onHostChange={handleHostChange} 
+              />
+            </div>
+            
+            <div className="action-buttons">
+              <button onClick={handleDetectAnomalies} disabled={!hostId || loading}>
+                Detect Anomalies
+              </button>
+            </div>
+          </section>
+
+          {error && <div className="error-message">{error}</div>}
+          {loading && <div className="loading-message">Loading...</div>}
+
+          {anomalyData && (
+            <section className="anomaly-section">
+              <AnomalyDisplay anomalyData={anomalyData} />
+            </section>
+          )}
+
+          <section className="feedback-section">
+            <FeedbackForm 
+              hostId={hostId} 
+              onSubmit={handleFeedbackSubmit} 
+            />
+          </section>
+        </div>
+
+        <footer className="app-footer">
+          <p>&copy; {new Date().getFullYear()} Zabbix AI Anomaly Detection</p>
+        </footer>
       </main>
-
-      <footer className="app-footer">
-        <p>&copy; {new Date().getFullYear()} Zabbix AI Anomaly Detection</p>
-      </footer>
     </div>
   );
 };
