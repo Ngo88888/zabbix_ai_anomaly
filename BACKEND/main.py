@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
 # ================= CONFIG ==================
-ZABBIX_URL = "http://172.16.1.43/zabbix"
+ZABBIX_URL = "http://172.16.0.142/zabbix"
 ZABBIX_USER = "Admin"
 ZABBIX_PASSWORD = "zabbix"
 GEMINI_API_KEY = "AIzaSyCy4T4o301ih--BgVeYddIaXaUKwElAKmo"
@@ -26,13 +26,18 @@ SessionLocal = sessionmaker(bind=engine)
 metadata = MetaData()
 
 # ================== TABLES ==================
-feedbacks_table = Table("feedbacks", metadata,
+feedbacks_table = Table(
+    "feedbacks",
+    metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("hostid", String(64)),
-    Column("feedback", String(20)),
-    Column("comment", String(500)),
+    Column("hostid", String(50)),
+    Column("item", String(255)),  # Optional: you can leave as NULL
+    Column("feedback", String(50)),
+    Column("comment", String(255)),
     Column("timestamp", String(50)),
 )
+
+SessionLocal = sessionmaker(bind=engine)
 
 # ================= INIT ====================
 app = FastAPI()
@@ -48,7 +53,7 @@ app.add_middleware(
 
 class Feedback(BaseModel):
     host_id: str
-    feedback: str  # correct / incorrect
+    feedback: str
     comment: str
 
 class HostRequest(BaseModel):
@@ -86,8 +91,6 @@ async def submit_feedback(feedback: Feedback):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
-
-
 @app.get("/chart_data")
 async def get_chart_data(host_id: str = Query(...), category: str = Query(...)):
     session = SessionLocal()

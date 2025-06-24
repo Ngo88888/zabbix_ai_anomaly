@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 
 # --- Cấu hình Zabbix ---
-ZABBIX_URL = "http://172.16.1.43/zabbix"
+ZABBIX_URL = "http://172.16.0.142/zabbix"
 ZABBIX_USER = "Admin"
 ZABBIX_PASSWORD = "zabbix"
 
